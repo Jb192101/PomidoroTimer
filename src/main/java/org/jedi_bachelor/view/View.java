@@ -1,23 +1,27 @@
 package org.jedi_bachelor.view;
 
-import javafx.scene.media.MediaPlayer;
+import javafx.application.Platform;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.TextField;
+import javafx.scene.image.Image;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
-import javafx.scene.shape.Arc;
-import javafx.scene.shape.ArcType;
-import javafx.scene.shape.StrokeLineCap;
+import javafx.scene.shape.Circle;
 import javafx.scene.text.Font;
 import javafx.scene.text.Text;
 import javafx.stage.Stage;
+import org.jedi_bachelor.model.SoundPlayer;
 import org.jedi_bachelor.viewmodel.ViewModel;
+
+import javax.sound.sampled.AudioInputStream;
+import javax.sound.sampled.AudioSystem;
+import javax.sound.sampled.Clip;
 
 public class View extends Stage {
     private Text timeText;
@@ -28,14 +32,13 @@ public class View extends Stage {
     TextField bigRelaxField;
     Button implementButton;
 
-    private Arc arc;
+    private Circle timerCircle;
 
-    ViewThread vt;
+    private ViewThread vt;
 
-    private ViewModel vm;
+    private final ViewModel vm;
 
-    // Для вывода звука
-    private MediaPlayer mediaPlayer;
+    private static Clip currentClip;
 
     public View(ViewModel _vm) {
         this.vm = _vm;
@@ -45,31 +48,19 @@ public class View extends Stage {
     }
 
     private void setupUI() {
-        // Бэк-круг (не трогаем его)
-        Arc backgroundArc = new Arc();
-        backgroundArc.setCenterX(200/2);
-        backgroundArc.setCenterY(200/2);
-        backgroundArc.setRadiusX(200/2 - 20);
-        backgroundArc.setRadiusY(200/2 - 20);
-        backgroundArc.setStartAngle(90);
-        backgroundArc.setLength(360);
-        backgroundArc.setType(ArcType.OPEN);
-        backgroundArc.setStroke(Color.LIGHTGRAY);
-        backgroundArc.setStrokeWidth(10);
-        backgroundArc.setFill(null);
+        timerCircle = new Circle();
+        timerCircle.setRadius(80);
+        timerCircle.setStrokeWidth(10);
+        timerCircle.setFill(Color.DODGERBLUE);
+        timerCircle.setStroke(Color.DODGERBLUE);
 
-        // Основной круг
-        arc = new Arc();
-        arc.setCenterX(200/2);
-        arc.setCenterY(200/2);
-        arc.setRadiusX(200/2 - 20);
-        arc.setRadiusY(200/2 - 20);
-        arc.setStrokeWidth(10);
-        arc.setStroke(Color.DODGERBLUE);
-        arc.setStartAngle(90);
-        arc.setFill(null);
-        arc.setStrokeLineCap(StrokeLineCap.ROUND);
-        arc.setStrokeWidth(10);
+        Circle backgroundCircle = new Circle(80);
+        backgroundCircle.setFill(Color.LIGHTGRAY);
+        backgroundCircle.setStroke(Color.LIGHTGRAY);
+        backgroundCircle.setStrokeWidth(10);
+
+        StackPane circlePane = new StackPane(backgroundCircle, timerCircle);
+        circlePane.setAlignment(Pos.CENTER);
 
         timeText = new Text();
         timeText.setFont(Font.font(24));
@@ -98,9 +89,9 @@ public class View extends Stage {
             pauseButton.setDisable(true);
         });
 
-        StackPane arcs = new StackPane(backgroundArc, arc);
+        circlePane.setAlignment(Pos.CENTER);
 
-        VBox root1 = new VBox(20, arcs, timeText, startButton, pauseButton);
+        VBox root1 = new VBox(20, circlePane, timeText, startButton, pauseButton);
         root1.setAlignment(Pos.CENTER);
         root1.setPadding(new Insets(20));
         root1.setStyle("-fx-background-color: #f5f5f5;");
@@ -132,6 +123,27 @@ public class View extends Stage {
         setTitle("Метод Помидора");
         setScene(scene);
         setResizable(false);
+
+        // Установка иконки
+        Image icon = new Image(getClass().getResourceAsStream("/ico.png"));
+        getIcons().add(icon);
+
+        // Действия при закрытии
+        this.setOnCloseRequest(e -> {
+            stopSound();
+
+            new Thread(() -> {
+                try {
+                    stopCycle();
+                    vm.stopWorkingThreads();
+                } catch (Exception ex) {
+                    ex.printStackTrace();
+                }
+            }).start();
+
+            Platform.runLater(() -> this.close());
+        });
+
         show();
     }
 
@@ -139,26 +151,40 @@ public class View extends Stage {
         vt.start();
     }
 
+    public void stopCycle() {
+        vt.interrupt();
+    }
+
     class ViewThread extends Thread {
+        private boolean soundPlayed = false;
+
         @Override
         public void run() {
             while(true) {
                 if(vm.getTime() == 0) {
+                    if (!soundPlayed) {
+                        playSound();
+                        soundPlayed = true;
+                        pauseButton.setDisable(true);
+                        startButton.setDisable(true);
+                    }
+
                     try {
-                        mediaPlayer.play();
-                        sleep(3000); // время условно, потом можно поменять
+                        sleep(27000); // время на паузу после завершения
                     } catch (InterruptedException e) {
                         throw new RuntimeException(e);
                     }
-                }
-
-                if (vm.getTime() <= 120) {
-                    arc.setStroke(Color.ORANGE);
                 } else {
-                    arc.setStroke(Color.DODGERBLUE);
-                }
+                    soundPlayed = false;
 
-                updateTimeDisplay();
+                    if (vm.getTime() <= 120) {
+                        timerCircle.setStroke(Color.ORANGE);
+                    } else {
+                        timerCircle.setStroke(Color.DODGERBLUE);
+                    }
+
+                    updateTimeDisplay();
+                }
 
                 try {
                     sleep(500);
@@ -170,9 +196,23 @@ public class View extends Stage {
     }
 
     public void updateTimeDisplay() {
-        int minutes = vm.getTime() / 60;
-        int seconds = vm.getTime() % 60;
+        int totalTime = 60 * vm.getWorkTime();
+        int remainingTime = vm.getTime();
+        double progress = (double) remainingTime / totalTime;
+
+        timerCircle.setRadius(80 * progress);
+
+        int minutes = remainingTime / 60;
+        int seconds = remainingTime % 60;
         timeText.setText(String.format("%02d:%02d", minutes, seconds));
-        arc.setLength(-360 * ((double) vm.getTime() / (60*60)));
+    }
+
+    public void stopSound() {
+        SoundPlayer.stopSound();
+    }
+
+    public void playSound() {
+        String soundFile = "/sound.wav";
+        SoundPlayer.playSound(soundFile);
     }
 }

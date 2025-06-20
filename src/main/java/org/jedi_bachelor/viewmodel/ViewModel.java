@@ -5,8 +5,8 @@ import org.jedi_bachelor.model.Timer;
 import org.jedi_bachelor.view.View;
 
 public class ViewModel {
-    private View view;
-    private Timer timer;
+    private final View view;
+    private final Timer timer;
 
     public ViewModel() {
         this.timer = new Timer();
@@ -14,6 +14,14 @@ public class ViewModel {
 
         timer.startProcessing();
         view.startCycle();
+    }
+
+    public void stopWorkingThreads() {
+        try {
+            timer.stopProcessing();
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     public void startApp() {
@@ -44,5 +52,9 @@ public class ViewModel {
 
     public void setBigRelaxTime(int _m) {
         timer.setBigRelaxTime(_m);
+    }
+
+    public int getWorkTime() {
+        return timer.getWorkTime();
     }
 }

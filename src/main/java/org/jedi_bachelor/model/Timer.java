@@ -15,10 +15,8 @@ public class Timer {
     // Константы
     @Getter
     private int workTime = 25;
-    @Setter
     @Getter
     private int relaxTime = 5;
-    @Setter
     @Getter
     private int bigRelaxTime = 30;
 
@@ -31,12 +29,30 @@ public class Timer {
     }
 
     public void setWorkTime(int _m) {
-        workTime = _m;
-        seconds = 60 * workTime;
+        if(_m >= 0 && _m <= 60) {
+            workTime = _m;
+            seconds = 60 * workTime;
+        }
+    }
+
+    public void setRelaxTime(int _m) {
+        if(_m >= 0 && _m <= 60) {
+            relaxTime = _m;
+        }
+    }
+
+    public void setBigRelaxTime(int _m) {
+        if(_m >= 0 && _m <= 60) {
+            bigRelaxTime = _m;
+        }
     }
 
     public void startProcessing() {
         timerThread.start();
+    }
+
+    public void stopProcessing() throws InterruptedException {
+        timerThread.interrupt();
     }
 
     class TimerThread extends Thread {
@@ -45,7 +61,7 @@ public class Timer {
             while (true) {
                 if(seconds == 0) {
                     try {
-                        sleep(3000);
+                        sleep(27000);
                     } catch (InterruptedException e) {
                         throw new RuntimeException(e);
                     }
