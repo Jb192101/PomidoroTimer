@@ -1,6 +1,7 @@
 package org.jedi_bachelor.model;
 
 import javax.sound.sampled.*;
+import java.util.Objects;
 
 public class SoundPlayer {
     private static Clip currentClip;
@@ -18,7 +19,7 @@ public class SoundPlayer {
             stopSound();
 
             AudioInputStream audioStream = AudioSystem.getAudioInputStream(
-                    SoundPlayer.class.getResourceAsStream(filePath));
+                    Objects.requireNonNull(SoundPlayer.class.getResourceAsStream(filePath)));
 
             currentClip = AudioSystem.getClip();
             currentClip.open(audioStream);

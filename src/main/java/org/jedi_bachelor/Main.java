@@ -5,6 +5,7 @@ import javafx.scene.image.Image;
 import javafx.stage.Stage;
 import org.jedi_bachelor.viewmodel.ViewModel;
 
+import java.io.IOException;
 import java.util.Objects;
 
 public class Main extends Application {
@@ -13,7 +14,7 @@ public class Main extends Application {
     }
 
     @Override
-    public void start(Stage stage) {
+    public void start(Stage stage) throws IOException {
         ViewModel vm = new ViewModel();
 
         Image icon = new Image(Objects.requireNonNull(getClass().getResourceAsStream("/ico.png")));

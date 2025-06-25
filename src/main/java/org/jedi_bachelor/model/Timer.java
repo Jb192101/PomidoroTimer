@@ -12,15 +12,19 @@ public class Timer {
     protected TimerThread timerThread;
     protected int countOfChanges = 0;
 
-    // Константы
+    // Переменные времени
     @Getter
-    private int workTime = 25;
+    private int workTime;
     @Getter
-    private int relaxTime = 5;
+    private int relaxTime;
     @Getter
-    private int bigRelaxTime = 30;
+    private int bigRelaxTime;
 
-    public Timer() {
+    public Timer(int _workTime, int _relaxTime, int _bigRelaxTime) {
+        this.workTime = _workTime;
+        this.relaxTime = _relaxTime;
+        this.bigRelaxTime = _bigRelaxTime;
+
         this.state = State.PAUSE;
         this.period = TimerPeriod.WORK;
         this.seconds = 60*workTime;
@@ -61,7 +65,7 @@ public class Timer {
             while (true) {
                 if(seconds == 0) {
                     try {
-                        sleep(27000);
+                        sleep(3000);
                     } catch (InterruptedException e) {
                         throw new RuntimeException(e);
                     }

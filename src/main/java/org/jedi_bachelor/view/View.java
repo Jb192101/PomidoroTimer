@@ -19,9 +19,9 @@ import javafx.stage.Stage;
 import org.jedi_bachelor.model.SoundPlayer;
 import org.jedi_bachelor.viewmodel.ViewModel;
 
-import javax.sound.sampled.AudioInputStream;
-import javax.sound.sampled.AudioSystem;
 import javax.sound.sampled.Clip;
+import java.io.IOException;
+import java.util.Objects;
 
 public class View extends Stage {
     private Text timeText;
@@ -98,17 +98,23 @@ public class View extends Stage {
 
         // Настройки времени
         Label labelWork = new Label("Время работы (минуты):");
-        workField = new TextField("25");
+        workField = new TextField(String.valueOf(vm.getWorkTime()));
         Label labelRelax = new Label("Время отдыха (минуты):");
-        relaxField = new TextField("5");
+        relaxField = new TextField(String.valueOf(vm.getRelaxTime()));
         Label labelBigRelax = new Label("Время большого отдыха (минуты):");
-        bigRelaxField = new TextField("30");
+        bigRelaxField = new TextField(String.valueOf(vm.getBigRelaxTime()));
 
         implementButton = new Button("Применить");
         implementButton.setOnAction(e -> {
             vm.setWorkTime(Integer.parseInt(workField.getText()));
             vm.setRelaxTime(Integer.parseInt(relaxField.getText()));
             vm.setBigRelaxTime(Integer.parseInt(relaxField.getText()));
+
+            try {
+                vm.saveSettings(workField.getText(), relaxField.getText(), bigRelaxField.getText());
+            } catch(IOException ex) {
+                ex.printStackTrace();
+            }
         });
 
         VBox root2 = new VBox(20, labelWork, workField, labelRelax,
@@ -125,7 +131,7 @@ public class View extends Stage {
         setResizable(false);
 
         // Установка иконки
-        Image icon = new Image(getClass().getResourceAsStream("/ico.png"));
+        Image icon = new Image(Objects.requireNonNull(getClass().getResourceAsStream("/ico.png")));
         getIcons().add(icon);
 
         // Действия при закрытии
